@@ -4,7 +4,12 @@ end)
 
 if not success or type(Library) ~= "table" or not Library.CreateWindow then
     warn("Failed to load Tokyo UI Library or CreateWindow method missing!")
-    return {}
+    return {
+        Main = nil,
+        Visuals = nil,
+        Exploits = nil,
+        Settings = {}
+    }
 end
 
 local Window = Library:CreateWindow("My Script")
