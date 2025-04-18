@@ -1,10 +1,64 @@
 local ESP = {}
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
 ESP.Enabled = false
 ESP.Boxes = {}
 
+function ESP:CreateBox()
+    local box = Drawing.new("Square")
+    box.Visible = false
+    box.Color = Color3.fromRGB(0, 255, 0)
+    box.Thickness = 1
+    box.Filled = false
+    return box
+end
+
+function ESP:GetBoundingBox(character)
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    local head = character:FindFirstChild("Head")
+    if not hrp or not head then return end
+
+    local headPos, headOnScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.3, 0))
+    local footPos, footOnScreen = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
+
+    if headOnScreen and footOnScreen then
+        local boxHeight = math.abs(headPos.Y - footPos.Y)
+        local boxWidth = boxHeight / 2
+        local x = headPos.X - boxWidth / 2
+        local y = headPos.Y
+        return Vector2.new(x, y), Vector2.new(boxWidth, boxHeight)
+    end
+end
+
+function ESP:Update()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            if not self.Boxes[player] then
+                self.Boxes[player] = self:CreateBox()
+            end
+
+            local box = self.Boxes[player]
+            local position, size = self:GetBoundingBox(player.Character)
+
+            if position and size then
+                box.Position = position
+                box.Size = size
+                box.Visible = self.Enabled
+            else
+                box.Visible = false
+            end
+        elseif self.Boxes[player] then
+            self.Boxes[player].Visible = false
+        end
+    end
+end
+
 function ESP:Clear()
     for _, box in pairs(self.Boxes) do
-        if box and box.Remove then
+        if box then
             box:Remove()
         end
     end
@@ -13,52 +67,21 @@ end
 
 function ESP:Enable()
     self.Enabled = true
-    self:Start()
 end
 
 function ESP:Disable()
     self.Enabled = false
-    self:Clear()
-end
-
-function ESP:Start()
-    if self.Connection then return end
-
-    self.Connection = game:GetService("RunService").RenderStepped:Connect(function()
-        if not self.Enabled then return end
-        self:Clear()
-
-        for _, player in pairs(game:GetService("Players"):GetPlayers()) do
-            if player ~= game.Players.LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                local hrp = player.Character.HumanoidRootPart
-                local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-                local vector, onScreen = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
-
-                if onScreen and humanoid then
-                    local height = math.clamp(3000 / (hrp.Position - workspace.CurrentCamera.CFrame.Position).Magnitude, 20, 250)
-                    local width = height / 2
-
-                    local box = Drawing.new("Square")
-                    box.Size = Vector2.new(width, height)
-                    box.Position = Vector2.new(vector.X - width / 2, vector.Y - height / 1.1)
-                    box.Color = Color3.fromRGB(0, 255, 0)
-                    box.Thickness = 1
-                    box.Transparency = 1
-                    box.Visible = true
-
-                    table.insert(self.Boxes, box)
-                end
-            end
+    for _, box in pairs(self.Boxes) do
+        if box then
+            box.Visible = false
         end
-    end)
-end
-
-function ESP:Destroy()
-    self:Disable()
-    if self.Connection then
-        self.Connection:Disconnect()
-        self.Connection = nil
     end
 end
+
+RunService.RenderStepped:Connect(function()
+    if ESP.Enabled then
+        ESP:Update()
+    end
+end)
 
 return ESP
