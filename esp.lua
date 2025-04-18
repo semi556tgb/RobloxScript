@@ -16,38 +16,38 @@ function ESP:CreateBox()
     return box
 end
 
-function ESP:GetBoundingBox(character)
-    local hrp = character:FindFirstChild("HumanoidRootPart")
+function ESP:GetTopAndBottom(character)
     local head = character:FindFirstChild("Head")
+    local hrp = character:FindFirstChild("HumanoidRootPart")
     local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not hrp or not head or not humanoid then return end
 
-    -- Calculate the true top and bottom points (head and feet)
-    local headPos = head.Position + Vector3.new(0, head.Size.Y / 2, 0)
-    local footPos = hrp.Position - Vector3.new(0, humanoid.HipHeight + hrp.Size.Y / 2, 0)
+    if not (head and hrp and humanoid) then return end
 
-    local headScreenPos, headVisible = Camera:WorldToViewportPoint(headPos)
-    local footScreenPos, footVisible = Camera:WorldToViewportPoint(footPos)
+    -- Get world positions for top and bottom
+    local topWorld = head.Position + Vector3.new(0, head.Size.Y / 2, 0)
+    local bottomWorld = hrp.Position - Vector3.new(0, humanoid.HipHeight + hrp.Size.Y / 2, 0)
 
-    if headVisible and footVisible then
-        local height = math.abs(footScreenPos.Y - headScreenPos.Y)
+    local top, topVisible = Camera:WorldToViewportPoint(topWorld)
+    local bottom, bottomVisible = Camera:WorldToViewportPoint(bottomWorld)
+
+    if topVisible and bottomVisible then
+        local height = math.abs(top.Y - bottom.Y)
         local width = height / 2
-        local x = headScreenPos.X - width / 2
-        local y = headScreenPos.Y
-
+        local x = (top.X + bottom.X) / 2 - width / 2
+        local y = math.min(top.Y, bottom.Y)
         return Vector2.new(x, y), Vector2.new(width, height)
     end
 end
 
 function ESP:Update()
     for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        if player ~= LocalPlayer and player.Character then
             if not self.Boxes[player] then
                 self.Boxes[player] = self:CreateBox()
             end
 
             local box = self.Boxes[player]
-            local position, size = self:GetBoundingBox(player.Character)
+            local position, size = self:GetTopAndBottom(player.Character)
 
             if position and size then
                 box.Position = position
