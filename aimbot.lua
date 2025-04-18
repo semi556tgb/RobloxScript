@@ -8,26 +8,29 @@ local UserInputService = game:GetService("UserInputService")
 local Camera = workspace.CurrentCamera
 
 Aimbot.Enabled = false
-Aimbot.Key = Enum.KeyCode.E
 Aimbot.TeamCheck = true
 Aimbot.FOV = 150
-Aimbot.LockedTarget = nil
 Aimbot.Smoothness = 0.2
+Aimbot.LockedTarget = nil
+
+Aimbot.Key = Enum.KeyCode.E
+Aimbot.IsAiming = false
 
 function Aimbot:GetClosestTarget()
     local closest = nil
     local shortestDistance = Aimbot.FOV
 
     for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Humanoid") and player.Character:FindFirstChild("HumanoidRootPart") then
-            if player.Character.Humanoid.Health > 0 then
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid and humanoid.Health > 0 then
                 if not Aimbot.TeamCheck or player.Team ~= LocalPlayer.Team then
-                    local rootPos = player.Character.HumanoidRootPart.Position
-                    local screenPos, onScreen = Camera:WorldToViewportPoint(rootPos)
+                    local rootPosition = player.Character.HumanoidRootPart.Position
+                    local screenPosition, onScreen = Camera:WorldToViewportPoint(rootPosition)
 
                     if onScreen then
-                        local mousePos = UserInputService:GetMouseLocation()
-                        local dist = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(mousePos.X, mousePos.Y)).Magnitude
+                        local mousePos = Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y)
+                        local dist = (Vector2.new(screenPosition.X, screenPosition.Y) - mousePos).Magnitude
                         if dist < shortestDistance then
                             shortestDistance = dist
                             closest = player
@@ -46,16 +49,19 @@ function Aimbot:AimAt(target)
         local targetPosition = target.Character.HumanoidRootPart.Position
         local currentDirection = Camera.CFrame.LookVector
         local aimDirection = (targetPosition - Camera.CFrame.Position).Unit
-        local newDirection = currentDirection:Lerp(aimDirection, Aimbot.Smoothness)
-        Camera.CFrame = CFrame.new(Camera.CFrame.Position, Camera.CFrame.Position + newDirection)
+        local smoothDirection = currentDirection:Lerp(aimDirection, Aimbot.Smoothness)
+        Camera.CFrame = CFrame.new(Camera.CFrame.Position, Camera.CFrame.Position + smoothDirection)
     end
 end
 
 function Aimbot:BindToRenderStep()
     RunService:UnbindFromRenderStep("Aimbot")
     RunService:BindToRenderStep("Aimbot", Enum.RenderPriority.Camera.Value, function()
-        if Aimbot.Enabled and UserInputService:IsKeyDown(Aimbot.Key) then
-            if not Aimbot.LockedTarget or not Aimbot.LockedTarget.Character or not Aimbot.LockedTarget.Character:FindFirstChild("HumanoidRootPart") then
+        if Aimbot.Enabled and Aimbot.IsAiming then
+            if not Aimbot.LockedTarget or not Aimbot.LockedTarget.Character
+                or not Aimbot.LockedTarget.Character:FindFirstChild("HumanoidRootPart")
+                or Aimbot.LockedTarget.Character.Humanoid.Health <= 0 then
+
                 Aimbot.LockedTarget = Aimbot:GetClosestTarget()
             end
 
@@ -77,6 +83,7 @@ function Aimbot:Disable()
     Aimbot.Enabled = false
     RunService:UnbindFromRenderStep("Aimbot")
     Aimbot.LockedTarget = nil
+    Aimbot.IsAiming = false
 end
 
 function Aimbot:SetKey(newKey)
@@ -94,5 +101,14 @@ end
 function Aimbot:SetTeamCheck(state)
     Aimbot.TeamCheck = state
 end
+
+UserInputService.InputBegan:Connect(function(input, processed)
+    if not processed and input.KeyCode == Aimbot.Key then
+        Aimbot.IsAiming = not Aimbot.IsAiming
+        if not Aimbot.IsAiming then
+            Aimbot.LockedTarget = nil
+        end
+    end
+end)
 
 return Aimbot
