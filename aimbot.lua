@@ -31,6 +31,7 @@ local function GetClosestPlayer()
     return closestPlayer
 end
 
+-- Key Press Detection
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if not library.flags["AimbotEnabled"] then return end
@@ -40,6 +41,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
+-- Lock onto the target
 RunService.RenderStepped:Connect(function()
     if not library.flags["AimbotEnabled"] then
         Target = nil
