@@ -18,23 +18,24 @@ end
 
 function ESP:GetBoundingBox(character)
     local hrp = character:FindFirstChild("HumanoidRootPart")
+    local head = character:FindFirstChild("Head")
     local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not hrp or not humanoid then return end
+    if not hrp or not head or not humanoid then return end
 
-    local position = hrp.Position
-    local height = humanoid.HipHeight + hrp.Size.Y + 2.5 -- Adjusting for R6/R15 scaling
-    local base = position - Vector3.new(0, height / 2, 0)
-    local top = position + Vector3.new(0, height / 2, 0)
+    -- Calculate the true top and bottom points (head and feet)
+    local headPos = head.Position + Vector3.new(0, head.Size.Y / 2, 0)
+    local footPos = hrp.Position - Vector3.new(0, humanoid.HipHeight + hrp.Size.Y / 2, 0)
 
-    local topPos, topOnScreen = Camera:WorldToViewportPoint(top)
-    local basePos, baseOnScreen = Camera:WorldToViewportPoint(base)
+    local headScreenPos, headVisible = Camera:WorldToViewportPoint(headPos)
+    local footScreenPos, footVisible = Camera:WorldToViewportPoint(footPos)
 
-    if topOnScreen and baseOnScreen then
-        local boxHeight = math.abs(topPos.Y - basePos.Y)
-        local boxWidth = boxHeight / 2
-        local x = topPos.X - boxWidth / 2
-        local y = topPos.Y
-        return Vector2.new(x, y), Vector2.new(boxWidth, boxHeight)
+    if headVisible and footVisible then
+        local height = math.abs(footScreenPos.Y - headScreenPos.Y)
+        local width = height / 2
+        local x = headScreenPos.X - width / 2
+        local y = headScreenPos.Y
+
+        return Vector2.new(x, y), Vector2.new(width, height)
     end
 end
 
