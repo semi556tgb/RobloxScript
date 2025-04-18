@@ -1,6 +1,4 @@
 local ESP = {}
-local Drawing = Drawing or {}
-
 ESP.Enabled = false
 ESP.Boxes = {}
 
@@ -33,12 +31,16 @@ function ESP:Start()
         for _, player in pairs(game:GetService("Players"):GetPlayers()) do
             if player ~= game.Players.LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
                 local hrp = player.Character.HumanoidRootPart
+                local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
                 local vector, onScreen = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
 
-                if onScreen then
+                if onScreen and humanoid then
+                    local height = math.clamp(3000 / (hrp.Position - workspace.CurrentCamera.CFrame.Position).Magnitude, 20, 250)
+                    local width = height / 2
+
                     local box = Drawing.new("Square")
-                    box.Size = Vector2.new(50, 50)
-                    box.Position = Vector2.new(vector.X - 25, vector.Y - 25)
+                    box.Size = Vector2.new(width, height)
+                    box.Position = Vector2.new(vector.X - width / 2, vector.Y - height / 1.1)
                     box.Color = Color3.fromRGB(0, 255, 0)
                     box.Thickness = 1
                     box.Transparency = 1
