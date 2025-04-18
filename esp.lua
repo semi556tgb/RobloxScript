@@ -1,86 +1,76 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+
 local ESP = {}
-ESP.Enabled = false
+ESP.Enabled = true
 ESP.Boxes = {}
-ESP.Color = Color3.fromRGB(0, 255, 0)
 
-function ESP:SetColor(color)
-    self.Color = color
+function ESP:CreateBox(player)
+    local box = Drawing.new("Square")
+    box.Visible = false
+    box.Thickness = 1
+    box.Color = Color3.fromRGB(0, 255, 0)
+    box.Transparency = 1
+    self.Boxes[player] = box
 end
 
-function ESP:Enable()
-    self.Enabled = true
-    self:Run()
-end
-
-function ESP:Disable()
-    self.Enabled = false
-    self:Clear()
-end
-
-function ESP:Clear()
-    for player, drawing in pairs(self.Boxes) do
-        if drawing and drawing.Box then
-            drawing.Box:Remove()
-        end
+function ESP:RemoveBox(player)
+    if self.Boxes[player] then
+        self.Boxes[player]:Remove()
         self.Boxes[player] = nil
     end
 end
 
-function ESP:Run()
-    task.spawn(function()
-        while self.Enabled do
-            for _, player in pairs(game.Players:GetPlayers()) do
-                if player ~= game.Players.LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                    local hrp = player.Character.HumanoidRootPart
-                    local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
+function ESP:UpdateBox(player)
+    local character = player.Character
+    local hrp = character and character:FindFirstChild("HumanoidRootPart")
 
-                    if not self.Boxes[player] then
-                        self.Boxes[player] = {
-                            Box = Drawing.new("Square")
-                        }
-                        self.Boxes[player].Box.Thickness = 2
-                        self.Boxes[player].Box.Filled = false
-                        self.Boxes[player].Box.Color = self.Color
-                    end
+    if hrp then
+        local position, visible = Camera:WorldToViewportPoint(hrp.Position)
 
-                    local box = self.Boxes[player].Box
+        if visible then
+            local scale = (Camera.CFrame.Position - hrp.Position).Magnitude
+            local size = math.clamp(1000 / scale, 20, 300)
 
-                    if onScreen then
-                        local scale = 3 -- Size adjuster
-                        local height = math.clamp((workspace.CurrentCamera.CFrame.Position - hrp.Position).Magnitude, 2, 30) * scale
-                        local width = height / 2
-
-                        box.Size = Vector2.new(width, height)
-                        box.Position = Vector2.new(pos.X - width / 2, pos.Y - height / 2)
-                        box.Color = self.Color
-                        box.Visible = true
-                    else
-                        box.Visible = false
-                    end
-                elseif self.Boxes[player] then
-                    self.Boxes[player].Box:Remove()
-                    self.Boxes[player] = nil
-                end
-            end
-
-            -- Clean up for players who left
-            for trackedPlayer, drawings in pairs(self.Boxes) do
-                if not game.Players:FindFirstChild(trackedPlayer.Name) then
-                    if drawings.Box then drawings.Box:Remove() end
-                    self.Boxes[trackedPlayer] = nil
-                end
-            end
-
-            task.wait()
+            local box = self.Boxes[player]
+            box.Size = Vector2.new(size, size * 1.6)
+            box.Position = Vector2.new(position.X - size / 2, position.Y - size * 1.6 / 2)
+            box.Visible = self.Enabled
+        else
+            self.Boxes[player].Visible = false
         end
-
-        self:Clear()
-    end)
+    else
+        if self.Boxes[player] then
+            self.Boxes[player].Visible = false
+        end
+    end
 end
 
-function ESP:Destroy()
-    self.Enabled = false
-    self:Clear()
+function ESP:Update()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= Players.LocalPlayer then
+            if not self.Boxes[player] then
+                self:CreateBox(player)
+            end
+            self:UpdateBox(player)
+        end
+    end
+
+    -- Clean up boxes for players that left
+    for trackedPlayer, _ in pairs(self.Boxes) do
+        if not Players:FindFirstChild(trackedPlayer.Name) then
+            self:RemoveBox(trackedPlayer)
+        end
+    end
 end
+
+RunService.Heartbeat:Connect(function()
+    ESP:Update()
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    ESP:RemoveBox(player)
+end)
 
 return ESP
