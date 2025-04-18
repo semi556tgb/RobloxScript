@@ -4,7 +4,10 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
 local Camera = workspace.CurrentCamera
+
+local Target = nil
 
 local function GetClosestPlayer()
     local closestPlayer = nil
@@ -16,7 +19,7 @@ local function GetClosestPlayer()
             local vector, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
 
             if onScreen then
-                local distance = (Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y) - Vector2.new(vector.X, vector.Y)).Magnitude
+                local distance = (Vector2.new(Mouse.X, Mouse.Y) - Vector2.new(vector.X, vector.Y)).Magnitude
                 if distance < shortestDistance then
                     shortestDistance = distance
                     closestPlayer = player
@@ -27,8 +30,6 @@ local function GetClosestPlayer()
 
     return closestPlayer
 end
-
-local Target = nil
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
