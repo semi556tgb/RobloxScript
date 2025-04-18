@@ -18,17 +18,22 @@ end
 
 function ESP:GetBoundingBox(character)
     local hrp = character:FindFirstChild("HumanoidRootPart")
-    local head = character:FindFirstChild("Head")
-    if not hrp or not head then return end
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not hrp or not humanoid then return end
 
-    local headPos, headOnScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.3, 0))
-    local footPos, footOnScreen = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
+    local position = hrp.Position
+    local height = humanoid.HipHeight + hrp.Size.Y + 2.5 -- Adjusting for R6/R15 scaling
+    local base = position - Vector3.new(0, height / 2, 0)
+    local top = position + Vector3.new(0, height / 2, 0)
 
-    if headOnScreen and footOnScreen then
-        local boxHeight = math.abs(headPos.Y - footPos.Y)
+    local topPos, topOnScreen = Camera:WorldToViewportPoint(top)
+    local basePos, baseOnScreen = Camera:WorldToViewportPoint(base)
+
+    if topOnScreen and baseOnScreen then
+        local boxHeight = math.abs(topPos.Y - basePos.Y)
         local boxWidth = boxHeight / 2
-        local x = headPos.X - boxWidth / 2
-        local y = headPos.Y
+        local x = topPos.X - boxWidth / 2
+        local y = topPos.Y
         return Vector2.new(x, y), Vector2.new(boxWidth, boxHeight)
     end
 end
