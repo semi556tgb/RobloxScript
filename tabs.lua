@@ -1,6 +1,13 @@
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/drillygzzly/Roblox-UI-Libs/main/1%20Tokyo%20Lib%20(FIXED)/Tokyo%20Lib%20Source.lua"))()
+local success, Library = pcall(function()
+    return loadstring(game:HttpGet("https://raw.githubusercontent.com/drillygzzly/Roblox-UI-Libs/main/1%20Tokyo%20Lib%20(FIXED)/Tokyo%20Lib%20Source.lua"))()
+end)
 
-local Window = Library:CreateWindow("My Script") -- make sure this matches the real library's API
+if not success or type(Library) ~= "table" or not Library.CreateWindow then
+    warn("Failed to load Tokyo UI Library or CreateWindow method missing!")
+    return
+end
+
+local Window = Library:CreateWindow("My Script")
 
 local Tabs = {}
 
