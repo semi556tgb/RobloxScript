@@ -1,30 +1,15 @@
--- esp.lua
 local ESP = {}
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
-
 ESP.Enabled = false
 ESP.Boxes = {}
-ESP.Settings = {
-    Color = Color3.fromRGB(0, 255, 0)
-}
+ESP.Color = Color3.fromRGB(0, 255, 0)
 
-function ESP:Clear()
-    for _, box in pairs(self.Boxes) do
-        if box and box.Remove then
-            box:Remove()
-        end
-    end
-    self.Boxes = {}
+function ESP:SetColor(color)
+    self.Color = color
 end
 
 function ESP:Enable()
     self.Enabled = true
-    if not self.Connection then
-        self:Start()
-    end
+    self:Run()
 end
 
 function ESP:Disable()
@@ -32,84 +17,70 @@ function ESP:Disable()
     self:Clear()
 end
 
-function ESP:SetColor(color)
-    self.Settings.Color = color
+function ESP:Clear()
+    for player, drawing in pairs(self.Boxes) do
+        if drawing and drawing.Box then
+            drawing.Box:Remove()
+        end
+        self.Boxes[player] = nil
+    end
 end
 
-function ESP:Start()
-    if self.Connection then return end
+function ESP:Run()
+    task.spawn(function()
+        while self.Enabled do
+            for _, player in pairs(game.Players:GetPlayers()) do
+                if player ~= game.Players.LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                    local hrp = player.Character.HumanoidRootPart
+                    local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
 
-    self.Connection = RunService.RenderStepped:Connect(function()
-        if not self.Enabled then return end
-
-        -- Clean old boxes first
-        for i = #self.Boxes, 1, -1 do
-            local box = self.Boxes[i]
-            if box.Player and (not box.Player.Parent or not Players:FindFirstChild(box.Player.Name)) then
-                if box.Drawing and box.Drawing.Remove then
-                    box.Drawing:Remove()
-                end
-                table.remove(self.Boxes, i)
-            end
-        end
-
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                local exists = false
-                for _, b in pairs(self.Boxes) do
-                    if b.Player == player then
-                        exists = true
-                        break
+                    if not self.Boxes[player] then
+                        self.Boxes[player] = {
+                            Box = Drawing.new("Square")
+                        }
+                        self.Boxes[player].Box.Thickness = 2
+                        self.Boxes[player].Box.Filled = false
+                        self.Boxes[player].Box.Color = self.Color
                     end
-                end
 
-                if not exists then
-                    local newBox = Drawing.new("Square")
-                    newBox.Thickness = 1
-                    newBox.Transparency = 1
-                    newBox.Color = self.Settings.Color
-                    table.insert(self.Boxes, {Drawing = newBox, Player = player})
-                end
-            end
-        end
+                    local box = self.Boxes[player].Box
 
-        for _, box in pairs(self.Boxes) do
-            if box.Player and box.Player.Character and box.Player.Character:FindFirstChild("HumanoidRootPart") then
-                local hrp = box.Player.Character.HumanoidRootPart
-                local humanoid = box.Player.Character:FindFirstChildOfClass("Humanoid")
+                    if onScreen then
+                        local scale = 3 -- Size adjuster
+                        local height = math.clamp((workspace.CurrentCamera.CFrame.Position - hrp.Position).Magnitude, 2, 30) * scale
+                        local width = height / 2
 
-                if humanoid then
-                    local min = hrp.Position - Vector3.new(2, 3, 0)
-                    local max = hrp.Position + Vector3.new(2, 3, 0)
-
-                    local min2d, minOnScreen = Camera:WorldToViewportPoint(min)
-                    local max2d, maxOnScreen = Camera:WorldToViewportPoint(max)
-
-                    if minOnScreen or maxOnScreen then
-                        local size = Vector2.new(math.abs(max2d.X - min2d.X), math.abs(max2d.Y - min2d.Y))
-                        local pos = Vector2.new((min2d.X + max2d.X) / 2 - size.X / 2, (min2d.Y + max2d.Y) / 2 - size.Y / 2)
-
-                        box.Drawing.Size = size
-                        box.Drawing.Position = pos
-                        box.Drawing.Color = self.Settings.Color
-                        box.Drawing.Visible = true
+                        box.Size = Vector2.new(width, height)
+                        box.Position = Vector2.new(pos.X - width / 2, pos.Y - height / 2)
+                        box.Color = self.Color
+                        box.Visible = true
                     else
-                        box.Drawing.Visible = false
+                        box.Visible = false
                     end
+                elseif self.Boxes[player] then
+                    self.Boxes[player].Box:Remove()
+                    self.Boxes[player] = nil
                 end
-            elseif box.Drawing then
-                box.Drawing.Visible = false
             end
+
+            -- Clean up for players who left
+            for trackedPlayer, drawings in pairs(self.Boxes) do
+                if not game.Players:FindFirstChild(trackedPlayer.Name) then
+                    if drawings.Box then drawings.Box:Remove() end
+                    self.Boxes[trackedPlayer] = nil
+                end
+            end
+
+            task.wait()
         end
+
+        self:Clear()
     end)
 end
 
 function ESP:Destroy()
-    self:Disable()
-    if self.Connection then
-        self.Connection:Disconnect()
-        self.Connection = nil
-    end
+    self.Enabled = false
+    self:Clear()
 end
 
 return ESP
