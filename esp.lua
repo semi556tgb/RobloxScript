@@ -1,97 +1,115 @@
---// Optimized ESP Script with Auto-Cleanup and Color Picker
-
+-- esp.lua
+local ESP = {}
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
-local ESP = {}
-ESP.Color = Color3.fromRGB(0, 255, 0)
 ESP.Enabled = false
 ESP.Boxes = {}
+ESP.Settings = {
+    Color = Color3.fromRGB(0, 255, 0)
+}
 
--- Create Box Drawing
-local function CreateBox()
-    local box = Drawing.new("Square")
-    box.Visible = false
-    box.Color = ESP.Color
-    box.Thickness = 1
-    box.Transparency = 1
-    return box
+function ESP:Clear()
+    for _, box in pairs(self.Boxes) do
+        if box and box.Remove then
+            box:Remove()
+        end
+    end
+    self.Boxes = {}
 end
 
--- Update ESP Boxes
-local function UpdateESP()
-    for player, box in pairs(ESP.Boxes) do
-        if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
-            local pos, visible = workspace.CurrentCamera:WorldToViewportPoint(player.Character.HumanoidRootPart.Position)
-            if visible then
-                local size = Vector3.new(2, 3, 1.5) * (workspace.CurrentCamera.CFrame.Position - player.Character.HumanoidRootPart.Position).Magnitude / 15
-                box.Size = Vector2.new(80 / pos.Z, 150 / pos.Z)
-                box.Position = Vector2.new(pos.X - box.Size.X / 2, pos.Y - box.Size.Y / 2)
-                box.Color = ESP.Color
-                box.Visible = true
-            else
-                box.Visible = false
+function ESP:Enable()
+    self.Enabled = true
+    if not self.Connection then
+        self:Start()
+    end
+end
+
+function ESP:Disable()
+    self.Enabled = false
+    self:Clear()
+end
+
+function ESP:SetColor(color)
+    self.Settings.Color = color
+end
+
+function ESP:Start()
+    if self.Connection then return end
+
+    self.Connection = RunService.RenderStepped:Connect(function()
+        if not self.Enabled then return end
+
+        -- Clean old boxes first
+        for i = #self.Boxes, 1, -1 do
+            local box = self.Boxes[i]
+            if box.Player and (not box.Player.Parent or not Players:FindFirstChild(box.Player.Name)) then
+                if box.Drawing and box.Drawing.Remove then
+                    box.Drawing:Remove()
+                end
+                table.remove(self.Boxes, i)
             end
-        else
-            box.Visible = false
         end
-    end
-end
 
--- Add ESP for a Player
-function ESP:AddPlayer(player)
-    if player == LocalPlayer then return end
-    if not ESP.Boxes[player] then
-        ESP.Boxes[player] = CreateBox()
-    end
-end
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local exists = false
+                for _, b in pairs(self.Boxes) do
+                    if b.Player == player then
+                        exists = true
+                        break
+                    end
+                end
 
--- Remove ESP for a Player
-function ESP:RemovePlayer(player)
-    if ESP.Boxes[player] then
-        ESP.Boxes[player]:Remove()
-        ESP.Boxes[player] = nil
-    end
-end
-
--- Connection Setup
-Players.PlayerAdded:Connect(function(player)
-    ESP:AddPlayer(player)
-end)
-
-Players.PlayerRemoving:Connect(function(player)
-    ESP:RemovePlayer(player)
-end)
-
--- Main Loop
-RunService.RenderStepped:Connect(function()
-    if ESP.Enabled then
-        UpdateESP()
-    else
-        for _, box in pairs(ESP.Boxes) do
-            box.Visible = false
+                if not exists then
+                    local newBox = Drawing.new("Square")
+                    newBox.Thickness = 1
+                    newBox.Transparency = 1
+                    newBox.Color = self.Settings.Color
+                    table.insert(self.Boxes, {Drawing = newBox, Player = player})
+                end
+            end
         end
-    end
-end)
 
--- Initialize Existing Players
-for _, player in pairs(Players:GetPlayers()) do
-    ESP:AddPlayer(player)
+        for _, box in pairs(self.Boxes) do
+            if box.Player and box.Player.Character and box.Player.Character:FindFirstChild("HumanoidRootPart") then
+                local hrp = box.Player.Character.HumanoidRootPart
+                local humanoid = box.Player.Character:FindFirstChildOfClass("Humanoid")
+
+                if humanoid then
+                    local min = hrp.Position - Vector3.new(2, 3, 0)
+                    local max = hrp.Position + Vector3.new(2, 3, 0)
+
+                    local min2d, minOnScreen = Camera:WorldToViewportPoint(min)
+                    local max2d, maxOnScreen = Camera:WorldToViewportPoint(max)
+
+                    if minOnScreen or maxOnScreen then
+                        local size = Vector2.new(math.abs(max2d.X - min2d.X), math.abs(max2d.Y - min2d.Y))
+                        local pos = Vector2.new((min2d.X + max2d.X) / 2 - size.X / 2, (min2d.Y + max2d.Y) / 2 - size.Y / 2)
+
+                        box.Drawing.Size = size
+                        box.Drawing.Position = pos
+                        box.Drawing.Color = self.Settings.Color
+                        box.Drawing.Visible = true
+                    else
+                        box.Drawing.Visible = false
+                    end
+                end
+            elseif box.Drawing then
+                box.Drawing.Visible = false
+            end
+        end
+    end)
 end
 
--- Tokyo UI Example Child Box 2 Color Picker
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/drillygzzly/TokyoLib/main/source.lua"))()
-local Window = Library:Window("Your Cheat Name", "Private", Color3.fromRGB(255, 0, 0), Enum.KeyCode.RightControl)
-local Visuals = Window:Tab("Visuals")
-local ChildBox2 = Visuals:Section("Child Box 2")
-
-ChildBox2:Toggle("ESP", false, function(state)
-    ESP.Enabled = state
-end)
-
-ChildBox2:Colorpicker("ESP Color", Color3.fromRGB(0, 255, 0), function(color)
-    ESP.Color = color
-end)
+function ESP:Destroy()
+    self:Disable()
+    if self.Connection then
+        self.Connection:Disconnect()
+        self.Connection = nil
+    end
+end
 
 return ESP
