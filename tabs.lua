@@ -7,11 +7,11 @@ return function(library)
 
     -- Tabs
     local MainTab = Window:AddTab("Main")
-    local VisualsTab = Window:AddTab("Visuals")
+    local VisualsTab = Window:AddTab("Visuals")      -- ✅ Visuals Tab
     local ExploitsTab = Window:AddTab("Exploits")
     local SettingsTab = library:CreateSettingsTab(Window)
 
-    -- Main Tab Section
+    -- === Main Tab Section ===
     local MainSection = MainTab:AddSection("Main Features", 1)
 
     MainSection:AddToggle({
@@ -30,8 +30,8 @@ return function(library)
         end
     })
 
-    -- Visuals Tab Section
-    local VisualSection = VisualsTab:AddSection("Visual Tweaks", 1)
+    -- === Visuals Tab Section ===
+    local VisualSection = VisualsTab:AddSection("Visual Tweaks", 1)  -- 🎯 Visuals Section
 
     VisualSection:AddToggle({
         text = "Enable ESP",
@@ -49,7 +49,7 @@ return function(library)
         end
     })
 
-    -- Exploits Tab Section
+    -- === Exploits Tab Section ===
     local ExploitSection = ExploitsTab:AddSection("Exploits", 1)
 
     ExploitSection:AddButton({
@@ -68,7 +68,7 @@ return function(library)
         end
     })
 
-    -- Optional: Confirm everything loaded
+    -- Confirmation
     print("All Tabs and Sections Loaded Successfully!")
 
 end
