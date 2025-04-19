@@ -1,55 +1,74 @@
 return function(library)
+
     local Window = library.NewWindow({
         title = "Your Cheat Name | Your Game Name",
         size = UDim2.new(0, 510, 0.6, 6)
     })
 
-    local MainTab = Window:AddTab("Main Tab")
+    -- Tabs
+    local MainTab = Window:AddTab("Main")
+    local VisualsTab = Window:AddTab("Visuals")
+    local ExploitsTab = Window:AddTab("Exploits")
     local SettingsTab = library:CreateSettingsTab(Window)
 
+    -- Main Tab Section
     local MainSection = MainTab:AddSection("Main Features", 1)
 
     MainSection:AddToggle({
-        text = "Example Toggle",
+        text = "Enable Main Feature",
         state = false,
         callback = function(value)
-            print("Toggle is now:", value)
+            print("Main Feature Enabled:", value)
         end
     })
 
     MainSection:AddButton({
-        text = "Example Button",
+        text = "Run Main Action",
         confirm = true,
         callback = function()
-            print("Button was pressed!")
+            print("Main Action executed!")
         end
     })
 
-    MainSection:AddSlider({
-        text = "Example Slider",
-        min = 0,
-        max = 100,
-        increment = 1,
+    -- Visuals Tab Section
+    local VisualSection = VisualsTab:AddSection("Visual Tweaks", 1)
+
+    VisualSection:AddToggle({
+        text = "Enable ESP",
+        state = false,
         callback = function(value)
-            print("Slider value:", value)
+            print("ESP Enabled:", value)
         end
     })
 
-    MainSection:AddList({
-        text = "Example List",
-        selected = "",
-        values = {"Option1", "Option2", "Option3"},
-        multi = false,
-        callback = function(value)
-            print("Selected:", value)
-        end
-    })
-
-    MainSection:AddColor({
-        text = "Example Color Picker",
+    VisualSection:AddColor({
+        text = "ESP Color",
         color = Color3.fromRGB(255, 255, 255),
         callback = function(value)
-            print("Selected Color:", value)
+            print("ESP Color Set To:", value)
         end
     })
+
+    -- Exploits Tab Section
+    local ExploitSection = ExploitsTab:AddSection("Exploits", 1)
+
+    ExploitSection:AddButton({
+        text = "Infinite Jump",
+        confirm = true,
+        callback = function()
+            print("Infinite Jump Enabled!")
+        end
+    })
+
+    ExploitSection:AddToggle({
+        text = "No Clip",
+        state = false,
+        callback = function(value)
+            print("No Clip State:", value)
+        end
+    })
+
+    -- Optional: Confirm everything loaded
+    print("All Tabs and Sections Loaded Successfully!")
+
 end
