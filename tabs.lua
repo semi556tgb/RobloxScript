@@ -1,17 +1,18 @@
 return function(library)
 
+    -- Create Main Window
     local Window = library.NewWindow({
         title = "Your Cheat Name | Your Game Name",
         size = UDim2.new(0, 510, 0.6, 6)
     })
 
-    -- Tabs
+    -- === Create Tabs ===
     local MainTab = Window:AddTab("Main")
-    local VisualsTab = Window:AddTab("Visuals")      -- ✅ Visuals Tab
+    local VisualsTab = Window:AddTab("Visuals")
     local ExploitsTab = Window:AddTab("Exploits")
     local SettingsTab = library:CreateSettingsTab(Window)
 
-    -- === Main Tab Section ===
+    -- === Main Tab Content ===
     local MainSection = MainTab:AddSection("Main Features", 1)
 
     MainSection:AddToggle({
@@ -30,8 +31,8 @@ return function(library)
         end
     })
 
-    -- === Visuals Tab Section ===
-    local VisualSection = VisualsTab:AddSection("Visual Tweaks", 1)  -- 🎯 Visuals Section
+    -- === Visuals Tab Content ===
+    local VisualSection = VisualsTab:AddSection("Visual Tweaks", 1)
 
     VisualSection:AddToggle({
         text = "Enable ESP",
@@ -49,7 +50,7 @@ return function(library)
         end
     })
 
-    -- === Exploits Tab Section ===
+    -- === Exploits Tab Content ===
     local ExploitSection = ExploitsTab:AddSection("Exploits", 1)
 
     ExploitSection:AddButton({
@@ -68,7 +69,7 @@ return function(library)
         end
     })
 
-    -- Confirmation
-    print("All Tabs and Sections Loaded Successfully!")
+    -- Done
+    print("✅ Tabs loaded: Main, Visuals, Exploits, Settings")
 
 end
