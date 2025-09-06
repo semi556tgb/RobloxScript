@@ -328,43 +328,6 @@ do -- Initalize
                                 end
                                 Tick = tick()
                             end
-
-                            -- Healthbar
-                            do  
-                                local health = Humanoid.Health / Humanoid.MaxHealth;
-                                Healthbar.Visible = ESP.Drawing.Healthbar.Enabled;
-                                Healthbar.Position = UDim2.new(0, Pos.X - w / 2 - 6, 0, Pos.Y - h / 2 + h * (1 - health))  
-                                Healthbar.Size = UDim2.new(0, ESP.Drawing.Healthbar.Width, 0, h * health)  
-                                --
-                                BehindHealthbar.Visible = ESP.Drawing.Healthbar.Enabled;
-                                BehindHealthbar.Position = UDim2.new(0, Pos.X - w / 2 - 6, 0, Pos.Y - h / 2)  
-                                BehindHealthbar.Size = UDim2.new(0, ESP.Drawing.Healthbar.Width, 0, h)
-                                -- Health Text
-                                do
-                                    if ESP.Drawing.Healthbar.HealthText then
-                                        local healthPercentage = math.floor(Humanoid.Health / Humanoid.MaxHealth * 100)
-                                        HealthText.Position = UDim2.new(0, Pos.X - w / 2 - 6, 0, Pos.Y - h / 2 + h * (1 - healthPercentage / 100) + 3)
-                                        HealthText.Text = tostring(healthPercentage)
-                                        HealthText.Visible = Humanoid.Health < Humanoid.MaxHealth
-                                        if ESP.Drawing.Healthbar.Lerp then
-                                            local color = health >= 0.75 and Color3.fromRGB(0, 255, 0) or health >= 0.5 and Color3.fromRGB(255, 255, 0) or health >= 0.25 and Color3.fromRGB(255, 170, 0) or Color3.fromRGB(255, 0, 0)
-                                            HealthText.TextColor3 = color
-                                        else
-                                            HealthText.TextColor3 = ESP.Drawing.Healthbar.HealthTextRGB
-                                        end
-                                    end                        
-                                end
-                            end
-
-                            do -- Names
-                                Name.Visible = ESP.Drawing.Names.Enabled
-                                if ESP.Options.Friendcheck and lplayer:IsFriendsWith(plr.UserId) then
-                                    Name.Text = string.format('(<font color="rgb(%d, %d, %d)">F</font>) %s', ESP.Options.FriendcheckRGB.R * 255, ESP.Options.FriendcheckRGB.G * 255, ESP.Options.FriendcheckRGB.B * 255, plr.Name)
-                                else
-                                    Name.Text = string.format('(<font color="rgb(%d, %d, %d)">E</font>) %s', 255, 0, 0, plr.Name)
-                                end
-                                Name.Position = UDim2.new(0, Pos.X, 0, Pos.Y - h / 2 - 9)
-                            end
                             
                             do -- Distance
                                 if ESP.Drawing.Distances.Enabled then
