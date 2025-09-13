@@ -1,117 +1,106 @@
-local Workspace, RunService, Players, CoreGui =
-    cloneref(game:GetService("Workspace")),
-    cloneref(game:GetService("RunService")),
-    cloneref(game:GetService("Players")),
-    game:GetService("CoreGui")
+-- // test.lua - ESP Core Script
+-- returns a module with ToggleESP and refresh_elements
 
-local ESP = {
-    Enabled = true, -- 🔴 Master ON/OFF switch
-    MaxDistance = 200,
-    Drawing = {
-        Boxes = {
-            Gradient = false,
-            GradientRGB1 = Color3.fromRGB(119, 120, 255),
-            GradientRGB2 = Color3.fromRGB(0, 0, 0),
-            GradientFill = true,
-            GradientFillRGB1 = Color3.fromRGB(119, 120, 255),
-            GradientFillRGB2 = Color3.fromRGB(0, 0, 0),
-            Filled = {
-                Enabled = true,
-                Transparency = 0.75,
-                RGB = Color3.fromRGB(0, 0, 0),
-            },
-            Full = {
-                Enabled = true,
-                RGB = Color3.fromRGB(255, 255, 255),
-            },
-        };
-    };
-    Connections = { RunService = RunService };
-}
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
 
--- Vars
-local lplayer = Players.LocalPlayer
-local Cam = Workspace.CurrentCamera
+local ESP = {}
+ESP.Enabled = true
+ESP.MaxDistance = 200
+ESP.Objects = {} -- store player UI frames
 
--- Create ScreenGui holder
+-- ScreenGui Holder
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ESPHolder"
+ScreenGui.Name = "ESP_UI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
 ScreenGui.Parent = CoreGui
 
 -- Utility
 local function Create(class, props)
     local inst = Instance.new(class)
-    for k, v in pairs(props) do
-        inst[k] = v
-    end
+    for k,v in pairs(props) do inst[k] = v end
     return inst
 end
 
--- Toggle ALL ESP visibility
-local function ToggleESP(state)
-    ESP.Enabled = state
-    for _, child in pairs(ScreenGui:GetChildren()) do
-        if child:IsA("Frame") then
-            child.Visible = state
-        end
+-- Cleanup ESP for a player
+local function RemoveESP(plr)
+    if ESP.Objects[plr] then
+        ESP.Objects[plr].Frame:Destroy()
+        ESP.Objects[plr] = nil
     end
 end
 
--- Create Box for Player
-local function BoxESP(plr)
-    local Box = Create("Frame", {
+-- Create ESP for a player
+local function AddESP(plr)
+    if ESP.Objects[plr] then return end
+    local frame = Create("Frame", {
         Parent = ScreenGui,
-        Name = plr.Name .. "_Box",
-        BackgroundColor3 = ESP.Drawing.Boxes.Filled.RGB,
-        BackgroundTransparency = ESP.Drawing.Boxes.Filled.Transparency,
+        BackgroundColor3 = Color3.fromRGB(0, 255, 0),
+        BackgroundTransparency = 0.5,
         BorderSizePixel = 0,
-        Visible = ESP.Enabled,
+        Visible = ESP.Enabled
     })
-    local Outline = Create("UIStroke", {
-        Parent = Box,
-        Transparency = 0,
-        Color = ESP.Drawing.Boxes.Full.RGB,
+    local stroke = Create("UIStroke", {
+        Parent = frame,
+        Color = Color3.fromRGB(0, 0, 0),
+        Thickness = 1,
     })
+    ESP.Objects[plr] = {Frame = frame, Stroke = stroke}
+end
 
-    RunService.RenderStepped:Connect(function()
-        if not ESP.Enabled then
-            Box.Visible = false
-            return
+-- Update loop
+RunService.RenderStepped:Connect(function()
+    if not ESP.Enabled then
+        for _,obj in pairs(ESP.Objects) do
+            obj.Frame.Visible = false
         end
-        if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-            local HRP = plr.Character.HumanoidRootPart
-            local Pos, OnScreen = Cam:WorldToScreenPoint(HRP.Position)
-            local Dist = (Cam.CFrame.Position - HRP.Position).Magnitude / 3.5714
-
-            if OnScreen and Dist <= ESP.MaxDistance then
-                local Size = HRP.Size.Y
-                local scaleFactor = (Size * Cam.ViewportSize.Y) / (Pos.Z * 2)
-                local w, h = 3 * scaleFactor, 4.5 * scaleFactor
-
-                Box.Position = UDim2.new(0, Pos.X - w / 2, 0, Pos.Y - h / 2)
-                Box.Size = UDim2.new(0, w, 0, h)
-                Box.Visible = true
+        return
+    end
+    for plr, obj in pairs(ESP.Objects) do
+        local char = plr.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local pos, vis = Camera:WorldToViewportPoint(hrp.Position)
+            local dist = (Camera.CFrame.Position - hrp.Position).Magnitude
+            if vis and dist <= ESP.MaxDistance then
+                local size = 3
+                local scale = 250 / pos.Z
+                local w, h = 30 * scale, 50 * scale
+                obj.Frame.Size = UDim2.new(0, w, 0, h)
+                obj.Frame.Position = UDim2.new(0, pos.X - w/2, 0, pos.Y - h/2)
+                obj.Frame.Visible = true
             else
-                Box.Visible = false
+                obj.Frame.Visible = false
             end
         else
-            Box.Visible = false
+            obj.Frame.Visible = false
         end
-    end)
-end
-
--- Init ESP for all current players
-for _, v in pairs(Players:GetPlayers()) do
-    if v ~= lplayer then
-        BoxESP(v)
-    end
-end
-Players.PlayerAdded:Connect(function(v)
-    if v ~= lplayer then
-        BoxESP(v)
     end
 end)
 
--- Example toggle calls
--- ToggleESP(true)   -- turn ON
--- ToggleESP(false)  -- turn OFF
+-- Player connections
+for _,plr in ipairs(Players:GetPlayers()) do
+    if plr ~= LocalPlayer then AddESP(plr) end
+end
+Players.PlayerAdded:Connect(function(plr)
+    if plr ~= LocalPlayer then AddESP(plr) end
+end)
+Players.PlayerRemoving:Connect(RemoveESP)
+
+-- Public API
+function ESP.ToggleESP(state)
+    ESP.Enabled = state
+    for _,obj in pairs(ESP.Objects) do
+        obj.Frame.Visible = state
+    end
+end
+
+function ESP.refresh_elements()
+    -- placeholder for UI sync, if needed
+end
+
+return ESP
